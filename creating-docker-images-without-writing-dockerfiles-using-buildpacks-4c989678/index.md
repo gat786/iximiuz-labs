@@ -13,7 +13,7 @@ categories:
 - containers
 
 playground:
-  name: ubuntu-24-04
+  name: ubuntu-26-04
 
 tasks:
   clone_samples:
@@ -21,12 +21,53 @@ tasks:
     machine: ubuntu-01
     user: laborant
     run: |
-      git clone https://github.com/buildpacks/samples.git
+      # git clone --filter=blob:none --sparse https://github.com/gat786/iximiuz-labs
+      # cd iximiuz-labs
+      # git sparse-checkout set creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/python-app
+      # cd $HOME
+      # mv iximiuz-labs/creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/python-app ./python-app
+      # rm -rf iximiuz-labs
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-python-app-2/python-app.zip
+      unzip python-app.zip
+
+  # install_docker:
+  #   init: true
+  #   machine: ubuntu-01
+  #   user: laborant
+
+  #   run: |
+  #     # Add Docker's official GPG key:
+  #     sudo apt update
+  #     sudo apt install ca-certificates curl -y
+  #     sudo install -m 0755 -d /etc/apt/keyrings
+  #     sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  #     sudo chmod a+r /etc/apt/keyrings/docker.asc
+      
+  #     # Add the repository to Apt sources:
+  #     sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+  #     Types: deb
+  #     URIs: https://download.docker.com/linux/ubuntu
+  #     Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+  #     Components: stable
+  #     Architectures: $(dpkg --print-architecture)
+  #     Signed-By: /etc/apt/keyrings/docker.asc
+  #     EOF
+      
+  #     sudo apt update
+
+  #     # install docker packages
+  #     sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+
+  #     sudo systemctl enable --now docker
+
+  #     # add laborant to docker user group
+  #     sudo groupadd docker
+  #     sudo usermod -aG docker $USER
+  
   install_buildpacks:
     init: true
     machine: ubuntu-01
     user: laborant
-
     run: |
       ORG=buildpacks
       REPO=pack
