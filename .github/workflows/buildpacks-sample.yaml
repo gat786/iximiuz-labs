@@ -64,3 +64,14 @@ jobs:
         with:
           name: ${{ steps.locate.outputs.name }}
           path: ${{ steps.zip.outputs.zip }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ZIP="${{ steps.zip.outputs.zip }}"
+          TAG="release-${{ steps.locate.outputs.name }}-${{ github.run_number }}"
+
+          gh release create "$TAG" "$ZIP" \
+            --title "$TAG" \
+            --notes "Automated release of the \`${{ steps.locate.outputs.dir }}\` directory."
