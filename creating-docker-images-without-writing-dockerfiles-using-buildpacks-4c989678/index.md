@@ -5,9 +5,8 @@ title: |-
   Build Containers with Buildpacks
 
 description: |-
-  This tutorial tries to inform readers about what Buildpacks are, what do 
-  they do and how to use them to generate containerized workloads without
-  the need of managing dockerfiles.
+  Brief about what Buildpacks is and what it can do, along with a hands on
+  tutorial.
 
 categories:
 - ci-cd
@@ -17,6 +16,12 @@ playground:
   name: ubuntu-24-04
 
 tasks:
+  clone_samples:
+    init: true
+    machine: ubuntu-01
+    user: laborant
+    run: |
+      git clone https://github.com/buildpacks/samples.git
   install_buildpacks:
     init: true
     machine: ubuntu-01
@@ -41,7 +46,6 @@ tasks:
       
       echo "Installed: $("$REPO" --version)"
 
-      echo "Clone samples repository"
 
 
 tagz:
@@ -69,9 +73,28 @@ cover: __static__/cover.png
 #     run: ...
 ---
 
-## Containers
+## What is Buildpacks?
 
-Containers is a technology which revolutionized the process of building and deploying
+[`Buildpacks`](https://buildpacks.io) or 
+[`Cloud Native Buildpacks`](https://buildpacks.io) is a tool that solves the 
+painpoints that some may face when working with containerized workloads on 
+the question of how to build them in a similar fashion all across the board. 
+Buildpacks automate the process of building a container by using pre-defined 
+and centrally managed building processes to build containers rather than relying
+on each developer or service team to manage their own Dockerfiles.
+
+![What is Buildpacks?](__static__/buildpack-what.png)
+
+If you have Buildpacks in your toolbox the build process of your applications
+will look like this 
+
+```sh
+pack build --tag my-favorite-app --builder gcr.io/buildpacks/python
+```
+
+## What are Containers?
+
+Containers are a technology which revolutionized the process of building and deploying
 applications. It allowed and encouraged the entire Software Engineering 
 industry to be more agile and confident in shipping software. They
 introduced the concepts which allowed a team to deploy stuff right out of a 
@@ -95,6 +118,8 @@ had already built them.
 The way of building containers generally involves doing the following steps
 
 1. Building an application in your favorite language with your preferred tools.
+    For e.g. `Nodejs`
+
 2. Writing a [`dockerfile`](https://docs.docker.com/reference/dockerfile/) or
     [`containerfile`](https://man.archlinux.org/man/Containerfile.5.en) which 
     specify how your application is built, packed and delivered as a image that
@@ -103,6 +128,31 @@ The way of building containers generally involves doing the following steps
     Writing a good Dockerfile means that engineers need to know how docker
     works as well as know the Dockerfile reference schema present
     [here](https://docs.docker.com/reference/dockerfile/)
+
+    A sample Dockerfile looks like this
+
+    ```Dockerfile
+    # Use an official base image
+    FROM node:20-alpine
+    
+    # Set the working directory inside the container
+    WORKDIR /app
+    
+    # Copy dependency files first (for better layer caching)
+    COPY package*.json ./
+    
+    # Install dependencies
+    RUN npm install
+    
+    # Copy the rest of the application code
+    COPY . .
+    
+    # Expose the port the app runs on
+    EXPOSE 3000
+    
+    # Define the command to run the app
+    CMD ["node", "server.js"]
+    ```
 
 3. Building the container using a tool like `docker`, `podman` or `buildah`,
     which would take the contents of Dockerfile, execute them one by one and
@@ -113,15 +163,7 @@ just with a container runtime, it creates a small addition to the tasks that
 Developers and Operations teams have to manage independently apart from 
 building the service itself i.e. defining `Containerfiles`.
 
-[`Buildpacks`](https://buildpacks.io) or 
-[`Cloud Native Buildpacks`](https://buildpacks.io) is a tool that solves the 
-painpoints that some may face when working with containerized workloads on 
-the question of how to build them in a similar fashion all across the board. 
-Buildpacks automate the process of building a container by using pre-defined 
-and centrally managed building processes to build containers rather than relying
-on each develoepr or service team to manage their own Dockerfiles.
-
-## Building them with Buildpacks
+## Lets begin with hands on practice
 
 While building an 
 

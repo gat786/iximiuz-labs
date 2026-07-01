@@ -1,0 +1,66 @@
+name: Zip Directory and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_dir:
+        description: "Name or path of the directory to zip"
+        required: true
+        type: string
+
+permissions:
+  contents: write # required to create a release
+
+jobs:
+  zip-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Locate target directory
+        id: locate
+        run: |
+          INPUT="${{ github.event.inputs.target_dir }}"
+
+          # First try the input as a direct path
+          if [ -d "$INPUT" ]; then
+            FOUND="$INPUT"
+          else
+            # Otherwise search the repo for a directory with that name
+            FOUND=$(find . -type d -name "$INPUT" -not -path '*/.git/*' | head -n 1)
+          fi
+
+          if [ -z "$FOUND" ] || [ ! -d "$FOUND" ]; then
+            echo "::error::Directory '$INPUT' was not found in the repository."
+            exit 1
+          fi
+
+          FOUND="${FOUND#./}"                 # strip leading ./
+          BASENAME="$(basename "$FOUND")"
+
+          echo "dir=$FOUND"        >> "$GITHUB_OUTPUT"
+          echo "name=$BASENAME"    >> "$GITHUB_OUTPUT"
+          echo "Found directory: $FOUND"
+
+      - name: Create zip archive
+        id: zip
+        run: |
+          DIR="${{ steps.locate.outputs.dir }}"
+          NAME="${{ steps.locate.outputs.name }}"
+          ZIP="${NAME}.zip"
+
+          PARENT="$(dirname "$DIR")"
+          BASE="$(basename "$DIR")"
+
+          # Zip so the archive contains just "<dir>/..." at the top level
+          ( cd "$PARENT" && zip -r "$GITHUB_WORKSPACE/$ZIP" "$BASE" )
+
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "Created archive: $ZIP"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.locate.outputs.name }}
+          path: ${{ steps.zip.outputs.zip }}
