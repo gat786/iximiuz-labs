@@ -1,7 +1,11 @@
+import os
+
 import uvicorn
 from fastapi import FastAPI
 
 app = FastAPI()
+port = os.getenv("PORT", "8080")
+host = os.getenv("HOST", "0.0.0.0")
 
 
 @app.get("/")
@@ -10,4 +14,4 @@ def read_root():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=8000, log_level="info")
+    uvicorn.run("main:app", host=host, port=int(port), log_level="info")
