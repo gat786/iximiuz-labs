@@ -13,60 +13,21 @@ categories:
 - containers
 
 playground:
-  name: ubuntu-26-04
+  name: docker
 
 tasks:
   clone_samples:
     init: true
-    machine: ubuntu-01
+    machine: docker-01
     user: laborant
     run: |
-      # git clone --filter=blob:none --sparse https://github.com/gat786/iximiuz-labs
-      # cd iximiuz-labs
-      # git sparse-checkout set creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/python-app
-      # cd $HOME
-      # mv iximiuz-labs/creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/python-app ./python-app
-      # rm -rf iximiuz-labs
       wget https://github.com/gat786/iximiuz-labs/releases/download/release-python-app-2/python-app.zip
+      trap 'rm -rf python-app.zip' EXIT;
       unzip python-app.zip
-
-  # install_docker:
-  #   init: true
-  #   machine: ubuntu-01
-  #   user: laborant
-
-  #   run: |
-  #     # Add Docker's official GPG key:
-  #     sudo apt update
-  #     sudo apt install ca-certificates curl -y
-  #     sudo install -m 0755 -d /etc/apt/keyrings
-  #     sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-  #     sudo chmod a+r /etc/apt/keyrings/docker.asc
-      
-  #     # Add the repository to Apt sources:
-  #     sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
-  #     Types: deb
-  #     URIs: https://download.docker.com/linux/ubuntu
-  #     Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
-  #     Components: stable
-  #     Architectures: $(dpkg --print-architecture)
-  #     Signed-By: /etc/apt/keyrings/docker.asc
-  #     EOF
-      
-  #     sudo apt update
-
-  #     # install docker packages
-  #     sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-
-  #     sudo systemctl enable --now docker
-
-  #     # add laborant to docker user group
-  #     sudo groupadd docker
-  #     sudo usermod -aG docker $USER
   
-  install_buildpacks:
+  install_pack_cli:
     init: true
-    machine: ubuntu-01
+    machine: docker-01
     user: laborant
     run: |
       ORG=buildpacks
@@ -135,24 +96,13 @@ pack build --tag my-favorite-app --builder gcr.io/buildpacks/python
 
 ## What are Containers?
 
-Containers are a technology which revolutionized the process of building and deploying
-applications. It allowed and encouraged the entire Software Engineering 
-industry to be more agile and confident in shipping software. They
-introduced the concepts which allowed a team to deploy stuff right out of a 
-developers machine to the cloud while making sure that the thing which works
-locally will work in the exact same manner on cloud. This was done by defining
-a set of rules using which a deployment artifact i.e. a `Container` would be 
-created which needed nothing but a container runtime to be executed on demand. 
-
-`Container`'s do that by creating a build artifact which can be deployed and with
-the help of container runtime get executed on the run environment without needing
-anything else. You can read about what comprises in a container image 
-[here](https://specs.opencontainers.org/image-spec/). The earliest 
-implementation of something that built a container came from Docker, they 
-provided tools with which you would be able to build containers and run them. 
-Infact the OCI specification which standardized the process of creating 
-containers was built two years later after [Docker](https://www.docker.com)
-had already built them. 
+Containers are a technology which revolutionized the process of building and 
+deploying applications. It allowed and encouraged the entire Software 
+Engineering industry to be more agile and confident in shipping software. 
+`Containers` do that by creating a build artifact which can be deployed and 
+with the help of container runtime get executed on the run environment without
+needing anything else. You can read about what comprises in a container image
+[here](https://specs.opencontainers.org/image-spec/).
 
 ## How containers are built
 
@@ -199,14 +149,12 @@ The way of building containers generally involves doing the following steps
     which would take the contents of Dockerfile, execute them one by one and
     create a deployment artifact i.e. a `Container` image at the end of it
 
-While Containerising solves the issue of workloads being able to run anywhere
-just with a container runtime, it creates a small addition to the tasks that
-Developers and Operations teams have to manage independently apart from 
-building the service itself i.e. defining `Containerfiles`.
+Lets see how Buildpacks can help us solve this
 
-## Lets begin with hands on practice
+## Hands on time
 
-While building an 
+1. Lets start the playground
+2. Examine the folders that are present in them
 
 Docs: [How to Author Tutorials on iximiuz Labs](/tutorials/sample-tutorial)
 

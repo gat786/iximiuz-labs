@@ -1,0 +1,16 @@
+{
+  "name": "nodejs-hello",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Express hello-world app for a Cloud Native Buildpacks tutorial",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
