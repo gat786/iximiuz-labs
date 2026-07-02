@@ -21,9 +21,9 @@ tasks:
     machine: docker-01
     user: laborant
     run: |
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-python-app-2/python-app.zip
-      trap 'rm -rf python-app.zip' EXIT;
-      unzip python-app.zip
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-examples-3/examples.zip
+      trap 'rm -rf examples.zip' EXIT;
+      unzip examples.zip
   
   install_pack_cli:
     init: true
