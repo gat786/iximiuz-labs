@@ -21,7 +21,7 @@ tasks:
     machine: docker-01
     user: laborant
     run: |
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-examples-3/examples.zip
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-examples-4/examples.zip
       trap 'rm -rf examples.zip' EXIT;
       unzip examples.zip
   
@@ -75,7 +75,9 @@ cover: __static__/cover.png
 #     run: ...
 ---
 
-## What is Buildpacks?
+## Introduction
+
+### What is Buildpacks?
 
 [`Buildpacks`](https://buildpacks.io) or 
 [`Cloud Native Buildpacks`](https://buildpacks.io) is a tool that solves the 
@@ -94,7 +96,7 @@ will look like this
 pack build --tag my-favorite-app --builder gcr.io/buildpacks/python
 ```
 
-## What are Containers?
+### What are Containers?
 
 Containers are a technology which revolutionized the process of building and 
 deploying applications. It allowed and encouraged the entire Software 
@@ -104,7 +106,7 @@ with the help of container runtime get executed on the run environment without
 needing anything else. You can read about what comprises in a container image
 [here](https://specs.opencontainers.org/image-spec/).
 
-## How containers are built
+### How containers are built
 
 The way of building containers generally involves doing the following steps
 
@@ -151,10 +153,53 @@ The way of building containers generally involves doing the following steps
 
 Lets see how Buildpacks can help us solve this
 
-## Hands on time
+### Hands on time
 
 1. Lets start the playground
-2. Examine the folders that are present in them
+2. Examine the folders that are present in them, you should see an example
+   directory with several subdirectories in them each containing a
+   web-application defined in a different programming language.
+3. Try to build the `python-hello` application.
+   
+   ```sh
+   pack build python-app --path examples/python-hello --builder paketobuildpacks/builder-jammy-base
+   ```
+
+   Lets try to run and test it
+
+   ```sh
+   docker run -p 8080:8080 python-app
+   ```
+
+4. Try to build the `golang-hello` application.
+   
+   ```sh
+   pack build golang-app --path examples/golang-hello --builder paketobuildpacks/builder-jammy-base
+   ```
+
+   Lets try to run and test it
+
+   ```sh
+   docker run -p 8080:8080 golang-app
+   ```
+
+5. Try to build the `nodejs-hello` application.
+   
+   ```sh
+   pack build nodejs-app --path examples/nodejs-hello --builder paketobuildpacks/builder-jammy-base
+   ```
+
+   Lets try to run and test it
+
+   ```sh
+   docker run -p 8080:8080 nodejs-app
+   ```
+
+That's it. When you have buildpacks in your arsenal, you do not need anything
+else apart from that to orchestrate a build process.
+
+
+## How are buildpacks made?
 
 Docs: [How to Author Tutorials on iximiuz Labs](/tutorials/sample-tutorial)
 
