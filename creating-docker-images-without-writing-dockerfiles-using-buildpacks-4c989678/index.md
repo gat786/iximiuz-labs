@@ -195,11 +195,65 @@ Lets see how Buildpacks can help us solve this
    docker run -p 8080:8080 nodejs-app
    ```
 
-That's it. When you have buildpacks in your arsenal, you do not need anything
-else apart from that to orchestrate a build process.
+That's it. With buildpacks, building a software into a containerized deployment 
+require no involvement from the dev team, they can just build their software
+the way they want and using pack cli's build command, it can get built in the
+way platforms teams want.
 
 
-## How are buildpacks made?
+## How does buildpacks work?
+
+While we described buildpacks as a whole previously, it was a broad definition
+and now we should dig a bit deep down to understand how the creation of this
+build artifact happens and what different moving parts are involved in this
+process.
+
+### Buildpack
+
+![Buildpacks contents](__static__/buildpack-definition-info.png)
+
+A Buildpack is a software, that transforms application source code into runnable
+artifacts by analysing code, detecting different files and determining the best
+way to build it. it is usually written as scripts that dictate what happens
+during a build lifecyle and decide how the container image should be build. The
+scripts come together to create a build lifecycle which includes steps like 
+
+1. analyse
+2. detect
+3. restore
+4. build
+5. export
+
+Inorder to build an application container you do not need to
+have a buildpack with all the different lifecycle components defined. You can
+define a custom buildpack with minimum of 2 steps.
+
+1. build
+2. detect
+
+### Builders
+
+![Builders contents](__static__/what-is-inside-builder.png)
+
+A Builder is an OCI image (i.e. container), that runs the lifecycle stages
+within its filesystem to complete a build process. Builder consists of
+
+1. Build Image
+2. Lifecycle binary
+3. Buildpack definitions
+
+Pack CLI using these definitions along with Lifecycle binary and the build-time
+image to contruct layers for the run-time image which are then added on top of a
+run-time base image.
+
+![Builders representation](__static__/builder.png)
+
+## Creating a custom builder
+
+
+
+## Creating a custom buildpack
+
 
 Docs: [How to Author Tutorials on iximiuz Labs](/tutorials/sample-tutorial)
 
