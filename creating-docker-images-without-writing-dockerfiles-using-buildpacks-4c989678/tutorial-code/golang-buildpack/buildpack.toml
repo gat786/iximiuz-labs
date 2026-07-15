@@ -1,0 +1,11 @@
+api = "0.10"
+WithWindowsBuild = false
+WithLinuxBuild = false
+
+[buildpack]
+  id = "registry.iximiuz.com/examples/buildpacks/golang-buildpack"
+  version = "0.0.1"
+
+[[targets]]
+  os = "linux"
+  arch = "amd64"

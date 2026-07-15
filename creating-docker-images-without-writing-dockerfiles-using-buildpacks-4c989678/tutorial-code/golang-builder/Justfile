@@ -1,0 +1,20 @@
+BUILDER_IMAGE := "registry.iximiuz.com/examples/images/golang-builder"
+RUNNER_IMAGE := "registry.iximiuz.com/examples/images/golang-runner"
+
+BUILDER := "registry.iximiuz.com/examples/builders/golang-builder"
+
+builder-push:
+	docker build . -t {{BUILDER_IMAGE}} -f builder.Dockerfile --push
+
+
+runner-push:
+	docker build . -t {{RUNNER_IMAGE}} -f runner.Dockerfile --push
+
+create-builder: builder-push runner-push
+	pack builder create {{BUILDER}} --config ./builder.toml
+	docker push {{BUILDER}}
+
+all: builder-push runner-push
+	#!/bin/bash
+	echo "hello"
+

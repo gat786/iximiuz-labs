@@ -1,0 +1,7 @@
+BUILDPACK_IMAGE := "registry.iximiuz.com/examples/buildpacks/golang-buildpack"
+
+pub-bp:
+	#!/bin/bash
+	pack buildpack package {{BUILDPACK_IMAGE}} --config ./package.toml
+	docker push {{BUILDPACK_IMAGE}} 
+

@@ -248,11 +248,18 @@ run-time base image.
 
 ![Builders representation](__static__/builder.png)
 
-## Creating a custom builder
+## Setting up Buildpacks ourselves
 
+We learnt how the pack cli can be used to create docker containers then we
+learnt what different concepts make buildpacks able to do what it does, now its
+time to build our own builder and a buildpack and then test a build with it.
 
+### Writing a custom buildpack
 
-## Creating a custom buildpack
+### Creating a custom builder
+
+Creating a custom builder requires
+
 
 
 Docs: [How to Author Tutorials on iximiuz Labs](/tutorials/sample-tutorial)
