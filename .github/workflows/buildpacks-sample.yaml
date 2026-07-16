@@ -1,18 +1,19 @@
-name: Zip Directory and Release
+name: Zip Directory and Release - buildpacks
 
 on:
   workflow_dispatch:
-    inputs:
-      target_dir:
-        description: "Name or path of the directory to zip"
-        required: true
-        type: string
 
 permissions:
   contents: write # required to create a release
 
 jobs:
   zip-and-release:
+    strategy:
+      fail-fast: true
+      matrix:
+        directory:
+          - "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples"
+          - "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/tutorial-code"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,9 +21,9 @@ jobs:
 
       - name: Locate target directory
         id: locate
+        env:
+          INPUT: ${{ matrix.directory }}
         run: |
-          INPUT="${{ github.event.inputs.target_dir }}"
-
           # First try the input as a direct path
           if [ -d "$INPUT" ]; then
             FOUND="$INPUT"
@@ -65,13 +66,13 @@ jobs:
           name: ${{ steps.locate.outputs.name }}
           path: ${{ steps.zip.outputs.zip }}
 
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          ZIP="${{ steps.zip.outputs.zip }}"
-          TAG="release-${{ steps.locate.outputs.name }}-${{ github.run_number }}"
+      # - name: Create GitHub release
+      #   env:
+      #     GH_TOKEN: ${{ github.token }}
+      #   run: |
+      #     ZIP="${{ steps.zip.outputs.zip }}"
+      #     TAG="release-${{ steps.locate.outputs.name }}-${{ github.run_number }}"
 
-          gh release create "$TAG" "$ZIP" \
-            --title "$TAG" \
-            --notes "Automated release of the \`${{ steps.locate.outputs.dir }}\` directory."
+      #     gh release create "$TAG" "$ZIP" \
+      #       --title "$TAG" \
+      #       --notes "Automated release of the \`${{ steps.locate.outputs.dir }}\` directory."

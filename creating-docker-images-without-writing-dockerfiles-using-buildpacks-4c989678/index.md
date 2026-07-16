@@ -35,7 +35,7 @@ tasks:
       wget https://github.com/gat786/iximiuz-labs/releases/download/release-examples-4/examples.zip
       unzip examples.zip
 
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-tutorial-code-6/tutorial-code.zip
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-tutorial-code-7/tutorial-code.zip
       unzip tutorial-code.zip
   
   install_pack_cli:
