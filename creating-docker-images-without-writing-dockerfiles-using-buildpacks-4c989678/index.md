@@ -32,11 +32,8 @@ tasks:
     run: |
       trap 'rm -rf ./*.zip' EXIT;
       
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-examples-4/examples.zip
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-17/artifacts.zip
       unzip examples.zip
-
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-tutorial-code-7/tutorial-code.zip
-      unzip tutorial-code.zip
   
   install_pack_cli:
     init: true
