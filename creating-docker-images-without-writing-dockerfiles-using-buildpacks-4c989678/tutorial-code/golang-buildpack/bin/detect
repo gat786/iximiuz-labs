@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEFAULT_GO_VERSION="1.22.5"
+
+# Skip this buildpack if the app is not a Go module.
+if [[ ! -f go.mod ]]; then
+  exit 100
+fi
+
+# Read the version from the "go 1.22.5" line in go.mod.
+go_version=$(awk '/^go / { print $2 }' go.mod)
+
+# go.mod may say just "1.22" — Go downloads need "1.22.0".
+[[ "$go_version" =~ ^[0-9]+\.[0-9]+$ ]] && go_version="$go_version.0"
+
+# Fall back to the default if go.mod didn't pin one.
+go_version="${go_version:-$DEFAULT_GO_VERSION}"
+
+echo "detected Go module, using Go $go_version"
+
+# Save it in the build plan so bin/build can read it.
+cat > "$CNB_BUILD_PLAN_PATH" << PLAN
+[[provides]]
+name = "go"
+
+[[requires]]
+name = "go"
+
+[requires.metadata]
+version = "$go_version"
+PLAN

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "---> Golang Web Service Buildpack"
+
+# 1. Read the Go version that bin/detect saved in the build plan.
+#    yj converts the TOML plan to JSON, jq picks the value out.
+go_version=$(yj -t < "$CNB_BP_PLAN_PATH" | jq -r '.entries[0].metadata.version')
+echo "---> Using Go $go_version"
+
+# 2. Download Go into a temp directory and add it to PATH.
+#    (linux-amd64; change to linux-arm64 if your machine is ARM)
+tmp=$(mktemp -d)
+curl -fsSL "https://go.dev/dl/go${go_version}.linux-amd64.tar.gz" | tar -xz -C "$tmp"
+export PATH="$tmp/go/bin:$PATH"
+
+# Go needs writable cache dirs, and must not auto-switch toolchains.
+export GOCACHE=$(mktemp -d) GOPATH=$(mktemp -d) GOTOOLCHAIN=local
+
+# 3. Build the binary into a new layer that ships in the run image.
+layer="$CNB_LAYERS_DIR/app"
+mkdir -p "$layer/bin"
+CGO_ENABLED=0 go build -o "$layer/bin/web-server" .
+
+echo '[types]
+launch = true' > "$layer.toml"
+
+# 4. Set the web launch process to run our binary.
+cat > "$CNB_LAYERS_DIR/launch.toml" << TOML
+[[processes]]
+type = "web"
+command = ["$layer/bin/web-server"]
+default = true
+TOML
+
+echo "---> Done"

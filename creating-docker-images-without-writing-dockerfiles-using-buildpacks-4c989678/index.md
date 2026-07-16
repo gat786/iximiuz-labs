@@ -6,7 +6,8 @@ title: |-
 
 description: |-
   Brief about what Buildpacks is and what it can do, along with a hands on
-  tutorial.
+  tutorial that takes you through the process of controlling an entire buildpack
+  stack.
 
 categories:
 - ci-cd
@@ -16,6 +17,14 @@ playground:
   name: docker
 
 tasks:
+  setup_neovim:
+    init: true
+    machine: docker-01
+    user: laborant
+    run: |
+      sudo apt-get update
+      sudo apt-get install neovim -y
+
   clone_samples:
     init: true
     machine: docker-01
@@ -224,19 +233,18 @@ scripts come together to create a build lifecycle which includes steps like
 4. build
 5. export
 
-Inorder to build an application container you do not need to
-have a buildpack with all the different lifecycle components defined. You can
-define a custom buildpack with minimum of 2 steps.
-
-1. build
-2. detect
+But inorder to define a buildpack, you do not need to define all of the phases
+yourself, simplest buildpacks can be built with just the use of `build` and 
+`detect` phases defined. We are gonna build a buildpack below. 😉
 
 ### Builders
 
 ![Builders contents](__static__/what-is-inside-builder.png)
 
-A Builder is an OCI image (i.e. container), that runs the lifecycle stages
-within its filesystem to complete a build process. Builder consists of
+A Builder is an OCI image *(i.e. not always a container)*, that runs the lifecycle stages
+of the buildpacks that are registered with it. It uses its own filesystem along 
+with the build context i.e. **your application code** to complete a build 
+process. Builder OCI Image consists of
 
 1. Build Image
 2. Lifecycle binary
@@ -244,7 +252,8 @@ within its filesystem to complete a build process. Builder consists of
 
 Pack CLI using these definitions along with Lifecycle binary and the build-time
 image to contruct layers for the run-time image which are then added on top of a
-run-time base image.
+run-time base image. We already discussed a little about how lifecycle works and
+we will see it in more details when we create our own buildpack definition.
 
 ![Builders representation](__static__/builder.png)
 
@@ -255,6 +264,63 @@ learnt what different concepts make buildpacks able to do what it does, now its
 time to build our own builder and a buildpack and then test a build with it.
 
 ### Writing a custom buildpack
+
+A buildpack is a set of lifecycle scripts that when executed, if they get
+completed produce a build artifact that can be turned into a docker container.
+We in the previous step used [Paketo](https://paketo.io/) buildpacks that were
+included in the paketo builder that we used when we ran the command 
+
+```sh
+pack build python-app --path examples/python-hello \
+    --builder paketobuildpacks/builder-jammy-base
+```
+
+We used the same builder to build application for all the languages, what it
+means is that the builder that we referenced consisted of multiple buildpack
+definitions within and when we ran the commands they all ran and the ones which
+passed the initial `detect` phase, were used to complete the rest of the build
+process. 
+
+That was an example of a well build and managed builder that an entire community
+relies upon. What we are going to build will only be for building a golang
+web-service, it is a great starter and will help you understand the basics so
+that you can go on and build complex ones if you chose to do so.
+
+Lets begin with the process, we can use Pack CLI to completely build a builder
+as well as new buildpacks and we would not require any other tooling apart from
+that. 
+
+---
+
+1. Creating a sample buildpack using Pack CLI
+
+    ```sh
+    pack buildpack new registry.iximiuz.com/examples/buildpacks/golang-buildpack \
+        --api 0.10 \
+        --path golang-buildpack \
+        --version 0.0.1 \
+        --targets "linux/amd64"
+    ```
+
+2. Examine the generated directory
+    
+    There exists a directory called `bin/` and a single file called
+    `buildpack.toml`. Buildpack.toml defines necessary metadata about the
+    currently defined buildpack and the `bin/` directory defines `detect` and
+    `build` scripts, which are nothing but empty scripts that just end with a
+    `0` signal. That is, they always succeed without producing anything.
+
+3. Constructing the detect script
+
+    Detect script which is present in `bin/detect` is something which detects
+    presence of certain files in the build context, to try to figure out whether
+    it makes sense to run the rest of buildpack or not. For example in this
+    buildpack since we are building it for golang, we can check whether `go.mod`
+    file is present in the build context or not, if it is present we exit with
+    `0` that means success and if it is not present we exit with `1`.
+4. Constructing the build script
+
+    
 
 ### Creating a custom builder
 

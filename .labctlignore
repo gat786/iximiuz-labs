@@ -1,3 +1,3 @@
 .venv
 __pycache__
-examples
+creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples/*
