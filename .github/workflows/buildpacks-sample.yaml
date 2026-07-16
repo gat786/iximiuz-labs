@@ -7,7 +7,7 @@ permissions:
   contents: write # required to create a release
 
 jobs:
-  zip-and-release:
+  zip-artifacts:
     strategy:
       fail-fast: true
       matrix:
@@ -66,13 +66,31 @@ jobs:
           name: ${{ steps.locate.outputs.name }}
           path: ${{ steps.zip.outputs.zip }}
 
-      # - name: Create GitHub release
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
-      #   run: |
-      #     ZIP="${{ steps.zip.outputs.zip }}"
-      #     TAG="release-${{ steps.locate.outputs.name }}-${{ github.run_number }}"
+  create-release:
+    runs-on: ubuntu-latest
+    needs:
+      - zip-artifacts
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      #     gh release create "$TAG" "$ZIP" \
-      #       --title "$TAG" \
-      #       --notes "Automated release of the \`${{ steps.locate.outputs.dir }}\` directory."
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        id: download-arts
+        with:
+          merge-multiple: true
+          path: ${{ github.workspace }}/release-artifacts
+
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ART_DIR: ${{ github.workspace }}/release-artifacts
+        run: |
+          zip -r artifacts.zip $ART_DIR;
+          ZIP="$PWD/artifacts.zip"
+          TAG="release-${{ steps.locate.outputs.name }}-${{ github.run_number }}"
+
+          gh release create "$TAG" "$ZIP" \
+            --title "$TAG" \
+            --notes "Automated release of the \`${{ steps.locate.outputs.dir }}\` directory."
