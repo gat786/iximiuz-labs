@@ -7,7 +7,6 @@ version = "0.0.1"
 [[order]]
 [[order.group]]
 id = "registry.iximiuz.com/examples/buildpacks/golang-buildpack"
-version = "0.0.1"
 
 # Base images used to create the builder
 [build]
@@ -15,4 +14,3 @@ image = "registry.iximiuz.com/examples/images/golang-builder"
 [run]
 [[run.images]]
 image = "registry.iximiuz.com/examples/images/golang-runner"
-

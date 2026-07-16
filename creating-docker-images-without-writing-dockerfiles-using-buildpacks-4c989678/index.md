@@ -30,9 +30,13 @@ tasks:
     machine: docker-01
     user: laborant
     run: |
+      trap 'rm -rf ./*.zip' EXIT;
+      
       wget https://github.com/gat786/iximiuz-labs/releases/download/release-examples-4/examples.zip
-      trap 'rm -rf examples.zip' EXIT;
       unzip examples.zip
+
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-tutorial-code-6/tutorial-code.zip
+      unzip tutorial-code.zip
   
   install_pack_cli:
     init: true

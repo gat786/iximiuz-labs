@@ -3,7 +3,7 @@ FROM ubuntu:resolute
 
 # Install packages that we want to make available at build time
 RUN apt-get update && \
-  apt-get install -y xz-utils ca-certificates wget && \
+  apt-get install -y xz-utils ca-certificates wget curl && \
   rm -rf /var/lib/apt/lists/*
 
 # Set required CNB user information
@@ -25,4 +25,3 @@ USER ${CNB_USER_ID}:${CNB_GROUP_ID}
 # Set required CNB target information
 LABEL io.buildpacks.base.distro.name="ubuntu"
 LABEL io.buildpacks.base.distro.version="26.04"
-
