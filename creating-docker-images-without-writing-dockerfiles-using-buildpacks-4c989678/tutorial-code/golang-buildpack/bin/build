@@ -16,7 +16,12 @@ export PATH="$tmp/go/bin:$PATH"
 
 # Go needs writable cache dirs, and must not auto-switch toolchains.
 export GOCACHE=$(mktemp -d) GOPATH=$(mktemp -d) GOTOOLCHAIN=local
+echo "Go installation succeeded. Installed version: ";
 
+go version;
+
+
+echo "Generating build binary -"
 # 3. Build the binary into a new layer that ships in the run image.
 layer="$CNB_LAYERS_DIR/app"
 mkdir -p "$layer/bin"

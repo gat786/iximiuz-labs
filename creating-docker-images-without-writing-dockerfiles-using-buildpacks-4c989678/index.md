@@ -33,7 +33,7 @@ tasks:
       trap 'rm -rf ./*.zip' EXIT;
       
       wget https://github.com/gat786/iximiuz-labs/releases/download/release-17/artifacts.zip
-      unzip examples.zip
+      unzip artifacts.zip
   
   install_pack_cli:
     init: true
@@ -293,35 +293,229 @@ that.
 
 ---
 
-1. Creating a sample buildpack using Pack CLI
+1. **Creating a sample buildpack using Pack CLI**
 
-    ```sh
-    pack buildpack new registry.iximiuz.com/examples/buildpacks/golang-buildpack \
-        --api 0.10 \
-        --path golang-buildpack \
-        --version 0.0.1 \
-        --targets "linux/amd64"
-    ```
+  ```sh
+  pack buildpack new registry.iximiuz.com/examples/buildpacks/golang-buildpack \
+    --api 0.10 \
+    --path golang-buildpack \
+    --version 0.0.1 \
+    --targets "linux/amd64"
+  ```
 
-2. Examine the generated directory
+2. **Examine the generated directory**
     
-    There exists a directory called `bin/` and a single file called
-    `buildpack.toml`. Buildpack.toml defines necessary metadata about the
-    currently defined buildpack and the `bin/` directory defines `detect` and
-    `build` scripts, which are nothing but empty scripts that just end with a
-    `0` signal. That is, they always succeed without producing anything.
+  There exists a directory called `bin/` and a single file called
+  `buildpack.toml`. Buildpack.toml defines necessary metadata about the
+  currently defined buildpack and the `bin/` directory defines `detect` and
+  `build` scripts, which are nothing but empty scripts that just end with a
+  `0` signal. That is, they always succeed without producing anything.
 
-3. Constructing the detect script
+  
+  ::tabbed
+  ---
+  tabs:
+    - name: tab1
+      title: buildpack.toml
+    - name: tab2
+      title: bin/build
+    - name: tab3
+      title: bin/detect
+  group: buildpack-files
+  ---
+  #tab1
+  ```toml
+  api = "0.10"
+  WithWindowsBuild = false
+  WithLinuxBuild = false
+  
+  [buildpack]
+    id = "registry.iximiuz.com/examples/buildpacks/golang-buildpack"
+    version = "0.0.1"
+  
+  [[targets]]
+    os = "linux"
+    arch = "amd64"
+  ```
+  #tab2
+  ```bash
+  #!/usr/bin/env bash
+  
+  exit 0
+  ```
 
-    Detect script which is present in `bin/detect` is something which detects
-    presence of certain files in the build context, to try to figure out whether
-    it makes sense to run the rest of buildpack or not. For example in this
-    buildpack since we are building it for golang, we can check whether `go.mod`
-    file is present in the build context or not, if it is present we exit with
-    `0` that means success and if it is not present we exit with `1`.
-4. Constructing the build script
+  #tab3
+  ```bash
+  #!/usr/bin/env bash
+  
+  set -euo pipefail
+  
+  layers_dir="$1"
+  env_dir="$2/env"
+  plan_path="$3"
+  
+  exit 0
+  ```
+  ::
 
-    
+3. **Constructing the detect script**
+
+  Detect script which is present in `bin/detect` is something which detects
+  presence of certain files in the build context, to try to figure out whether
+  it makes sense to run the rest of buildpack or not. For example in this
+  buildpack since we are building it for golang, we can check whether `go.mod`
+  file is present in the build context or not, if it is present we exit with
+  `0` that means success and if it is not present we exit with `1`.
+
+  ```bash
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  DEFAULT_GO_VERSION="1.22.5"
+  
+  # Skip this buildpack if the app is not a Go module.
+  if [[ ! -f go.mod ]]; then
+    exit 100
+  fi
+  
+  # Read the version from the "go 1.22.5" line in go.mod.
+  go_version=$(awk '/^go / { print $2 }' go.mod)
+  
+  # if go.mod says just "1.22" — update it as Go downloads need "1.22.0".
+  [[ "$go_version" =~ ^[0-9]+\.[0-9]+$ ]] && go_version="$go_version.0"
+  
+  # Fall back to the default if go.mod didn't pin one.
+  go_version="${go_version:-$DEFAULT_GO_VERSION}"
+  
+  echo "detected Go module, using Go $go_version"
+  
+  # Save it in the build plan so bin/build can read it.
+  cat > "$CNB_BUILD_PLAN_PATH" << PLAN
+  [[provides]]
+  name = "go"
+  
+  [[requires]]
+  name = "go"
+  
+  [requires.metadata]
+  version = "$go_version"
+  PLAN
+  ```
+
+  Copy the above content and paste it in `bin/detect` file within buildpack
+  directory.
+
+4. **Constructing the build script**
+
+  When detect script exits with a status `0` i.e. it finishes execution 
+  without any errors, buildpack lifecycle proceeds with other steps defined,
+  if the detect script does not pass then the rest of the steps are skipped
+  and build fails unless the builder has some other buildpack defined which
+  succeeds in detect operation.
+
+  The task of a build script is to take context and the metadata provided
+  from detect phase and try to build layers that should be attached to run
+  time image. In our case, since we have detected that the context includes
+  a gopackage, we need to
+
+  1. Install applicable go version.
+  2. Build a binary of the source code.
+  3. Push the build binary into a layer that can be attached to run image.
+
+  Below code does exactly that
+  
+  ```bash
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  echo "---> Golang Web Service Buildpack"
+  
+  # 1. Read the Go version that bin/detect saved in the build plan.
+  #    yj converts the TOML plan to JSON, jq picks the value out.
+  go_version=$(yj -t < "$CNB_BP_PLAN_PATH" | jq -r '.entries[0].metadata.version')
+  echo "---> Using Go $go_version"
+  
+  # 2. Download Go into a temp directory and add it to PATH.
+  #    (linux-amd64; change to linux-arm64 if your machine is ARM)
+  tmp=$(mktemp -d)
+  curl -fsSL "https://go.dev/dl/go${go_version}.linux-amd64.tar.gz" | tar -xz -C "$tmp"
+  export PATH="$tmp/go/bin:$PATH"
+  
+  # Go needs writable cache dirs, and must not auto-switch toolchains.
+  export GOCACHE=$(mktemp -d) GOPATH=$(mktemp -d) GOTOOLCHAIN=local
+  echo "Go installation succeeded. Installed version: ";
+  
+  go version;
+  
+  
+  echo "Generating build binary -"
+  # 3. Build the binary into a new layer that ships in the run image.
+  layer="$CNB_LAYERS_DIR/app"
+  mkdir -p "$layer/bin"
+  CGO_ENABLED=0 go build -o "$layer/bin/web-server" .
+  
+  echo '[types]
+  launch = true' > "$layer.toml"
+  
+  # 4. Set the web launch process to run our binary.
+  cat > "$CNB_LAYERS_DIR/launch.toml" << TOML
+  [[processes]]
+  type = "web"
+  command = ["$layer/bin/web-server"]
+  default = true
+  TOML
+  
+  echo "---> Done"
+  ```
+
+  ::remark-box
+  ---
+  kind: info
+  ---
+  
+  Notice that we are using utilities like `wget`, `yj`, `jq` inorder to 
+  complete our build task, these are packages that we will need in the
+  build image.
+  :: 
+
+5. **Creating a package.toml file to package buildpack**
+
+  While the buildpack that we have created can directly be used by providing
+  direct file path to it, but inorder to create a OCI artifact of it and then
+  save it to a repository, we need to create a `package.toml` file as well.
+  `package.toml` file should be created in the root of buildpack directory.
+
+  ```toml
+  [buildpack]
+  uri = "."
+  ```
+
+6. **Creating OCI artifact of the package and uploading it to a registry**
+
+  Running the below command creates a buildpack artifact and saves it on docker
+  images list. A simple docker push with the image name then saves it to the 
+  registry.
+  
+  ```bash
+  BUILDPACK_IMAGE="registry.iximiuz.com/examples/buildpacks/golang-buildpack"
+  pack buildpack package ${BUILDPACK_IMAGE} --config ./package.toml
+  docker push ${BUILDPACK_IMAGE} 
+  ```
+
+  ::remark-box
+  ---
+  kind: info
+  ---
+  
+  Notice that we are using `registry.iximiuz.com`, this is a registry that comes 
+  with each Iximiuz labs playground, it is private to a playground and images 
+  stored on it will be lost once the playground is destroyed.
+
+  We will be using the same registry for all of the artifacts that we will be
+  creating.
+  :: 
+
+  
 
 ### Creating a custom builder
 
