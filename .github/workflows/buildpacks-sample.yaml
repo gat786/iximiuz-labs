@@ -13,7 +13,6 @@ jobs:
       matrix:
         directory:
           - "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples"
-          - "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/tutorial-code"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -85,14 +84,13 @@ jobs:
         working-directory: ${{ github.workspace }}/release-artifacts
         run: |
             unzip examples.zip
-            unzip tutorial-code.zip
             rm *.zip
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          ART_DIR: release-artifacts
-          ZIP_FILE_NAME: artifacts.zip
+          ART_DIR: release-artifacts/examples
+          ZIP_FILE_NAME: examples.zip
         working-directory: ${{ github.workspace }}
         run: |
           zip -r $ZIP_FILE_NAME $ART_DIR;
