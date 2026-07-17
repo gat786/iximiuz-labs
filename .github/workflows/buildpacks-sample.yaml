@@ -89,9 +89,9 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          ART_DIR: release-artifacts/examples
+          ART_DIR: examples
           ZIP_FILE_NAME: examples.zip
-        working-directory: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}/release-artifacts
         run: |
           zip -r $ZIP_FILE_NAME $ART_DIR;
           ZIP="$ZIP_FILE_NAME"
