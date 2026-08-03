@@ -32,7 +32,7 @@ tasks:
     run: |
       trap 'rm -rf ./*.zip' EXIT;
 
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-18/examples.zip
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-19/examples.zip
       unzip examples.zip
 
   install_pack_cli:
