@@ -45,8 +45,31 @@ tasks:
     run: |
       trap 'rm -rf ./*.zip' EXIT;
 
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-19/examples.zip
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-20/examples.zip
       unzip examples.zip
+
+  install_pack_cli:
+    init: true
+    machine: docker-01
+    user: laborant
+    run: |
+      ORG=buildpacks
+      REPO=pack
+      OS=linux
+
+      VERSION=v0.40.7
+      echo "Version: $VERSION"
+
+      TEMP_DIR=$(mktemp -d)
+
+      FILE_NAME="$REPO-$VERSION-$OS.tgz"
+      URL="https://github.com/$ORG/$REPO/releases/download/$VERSION/$FILE_NAME"
+
+      echo "Downloading from $URL";
+      curl -o $TEMP_DIR/$FILE_NAME -SL "$URL"
+      sudo tar -C /usr/local/bin/ --no-same-owner -xvf "$TEMP_DIR/$FILE_NAME"
+
+      echo "Installed: $("$REPO" --version)"
 ---
 
 ## What is Buildpacks?
@@ -64,6 +87,51 @@ pushed to any OCI compatible registry i.e. (DockerHub, Google Cloud Artifact
 Registry, Github Container Registry etc) and then pulled from your container
 orchestrator to be executed.
 
+### Benefits of using Buildpacks
+
+The main benefits of using Buildpacks are as follows
+
+1. **No Containerfiles to manage** - You don't need to maintain a separate
+  Containerfile anywhere which describes how your application should be build.
+  Buildpacks read the context i.e. your source code and automatically pick
+  up finer details of your application and create run time image accordingly.
+
+    *  **No more worrying about incorrect Containerfile** - Since there are no
+    Containerfiles to begin with, it removes a whole class of bugs that comes
+    with managing it, a lot of times applications change, their source codes
+    change people start using newer versions of languages for example of
+    developing but Containerfiles remain the same making it so that there is a
+    drift created unknowingly which may lead to an application failing to start
+    at some point when the drift starts breaking software.
+
+    *  **Up and running in no time** If your workload is a standard workload for
+    which definitions of buildpacks and builders already exists, you only need the
+    `pack` cli to automate building of images. It gives a quick start to a tech
+    team just beginning to create their infrastructure which they can later
+    optimise as they want.
+
+    * **Containerized Workloads from the get go** which is a big win for any
+    platform teams looking to onboard a new compute option which uses cloud-native
+    deployment techniques like a container-runtime.
+
+2. **Flexibility of changing base layers of runtime image** You get
+  flexibility of using `rebase` feature. It is a feature that allows on demand
+  of swapping base layer of any pre-built runtime container image without running
+  the entire build pipeline. This feature allows you rebuilt images quickly for
+
+    * Patching images that have critical vulnerabilities in them.
+    * Updating base layer of runtime image with newer software when available
+    even for software that was built a long time ago, this allows fixing of runtime
+    container images created by buildpacks with matching base layer images.
+
+
+### What is it not?
+
+* It is not a replacement for standard ways to build a container.
+* It does not always produce the most optimised container image.
+* It will not always work out of the box for your custom source code structure.
+
+
 ## How does it differ from standard way of creating containers?
 
 Standard way of containerizing applications is as follows
@@ -74,6 +142,8 @@ Standard way of containerizing applications is as follows
 containerfile which was defined.
 
 For example, lets start the playground, we will see an example.
+
+## Going hands on
 
 ### Building a standard Nodejs application using Dockerfiles
 
@@ -165,6 +235,69 @@ USER node
 CMD ["npm", "start"]
 DOCKERFILE
 ```
+
+Now if you build an image, using the build command you will be able to run it.
+
+```
+docker build . -t nodejs-hello
+docker run -p 8080:8080 nodejs-hello
+```
+
+### Trying out buildpacks
+
+This playground comes preinstalled with `pack` cli, which is the most common
+and used way of building container images with buildpacks. It is a tool which
+orchestrates the process of building the images using `builders`, `buildpacks`
+using build `lifecycle` of buildpacks.
+
+Lets try using it
+
+```bash
+pack
+```
+
+You will see a lot of options when you run this command, some useful, some not
+so much. Lets go over the most important things before we use the tool.
+
+#### Builder
+
+A Buildpack Builder is an OCI image that consists of a bunch of things that make
+a build process successful, namely `lifecycle` binary, `buildpack definitions`
+references to `build` and `run` docker images. When building a container image
+using buildpacks, one can specify a builder and builder will run the lifecycle
+binary along with it the definitions of buildpacks will run and depending upon
+whether operation was a success you will end up generating a container image.
+
+#### Buildpack Definitions
+
+Buildpack definitions are nothing but scripts that get executed and complete a
+certain part of the lifecycle of the build process. For example typically simplest
+buildpack definitions implement `detect` and `build` phases. In the `detect` phase
+the definition should `detect` if the `build` process should even run or not,
+if it should run then the `detect` phase should collect necessary information for
+`build` to successfully happen and pass it to the `build` process.
+
+::remark-box
+---
+kind: info
+---
+We will go in more details about the builder and buildpack definitions in an upcoming
+tutorial.
+::
+
+Inorder to build our first container image using pack, we need to specify a
+builder and provide the necessary build context (i.e. source code directory)
+
+```sh
+pack build \
+  --builder paketobuildpacks/ubuntu-resolute-builder \
+  nodejs-hello
+```
+
+Doing this will pull the builder, run all the buildpack definitions that are
+configured in that builder and then supported buildpacks did end up running
+the builder phase of it.
+
 
 Docs: [How to Author Tutorials on iximiuz Labs](/tutorials/sample-tutorial)
 
