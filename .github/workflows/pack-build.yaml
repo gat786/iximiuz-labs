@@ -1,0 +1,32 @@
+name: Zip Directory and Release - buildpacks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write # required to create a release
+
+env:
+  APP_DIR: "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples"
+
+jobs:
+  zip-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Pack CLI
+        shell: bash
+        run: |
+          wget https://github.com/buildpacks/pack/releases/download/v0.40.9/pack-v0.40.9-linux.tgz
+
+          tar -xvf pack-v0.40.9-linux.tgz
+
+          sudo mv pack /usr/local/bin
+
+      - name: Build Image
+        shell: bash
+        working-directory: "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples/golang-hello"
+        run: |
+          pack build gh --builder heroku/heroku:26
