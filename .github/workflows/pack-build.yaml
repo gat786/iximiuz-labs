@@ -1,4 +1,4 @@
-name: Zip Directory and Release - buildpacks
+name: Pack Build
 
 on:
   workflow_dispatch:
