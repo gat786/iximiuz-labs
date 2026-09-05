@@ -29,4 +29,4 @@ jobs:
         shell: bash
         working-directory: "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples/golang-hello"
         run: |
-          pack build gh --builder heroku/heroku:26
+          pack build gh --builder heroku/builder:26
