@@ -6,11 +6,14 @@ on:
 permissions:
   contents: write # required to create a release
 
-env:
-  APP_DIR: "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples"
-
 jobs:
   zip-artifacts:
+    strategy:
+      matrix:
+        folders:
+          - "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples/golang-hello"
+          - "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples/python-hello"
+          - "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples/nodejs-hello"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,6 +30,6 @@ jobs:
 
       - name: Build Image
         shell: bash
-        working-directory: "creating-docker-images-without-writing-dockerfiles-using-buildpacks-4c989678/examples/golang-hello"
+        working-directory: ${{ matrix.folders }}
         run: |
-          pack build gh --builder heroku/builder:26
+          pack build app --builder heroku/builder:26
