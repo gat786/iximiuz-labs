@@ -22,7 +22,7 @@ updatedAt: 2026-08-02
 cover: __static__/cover.png
 
 playground:
-  name: podman
+  name: ubuntu-24-04
 
 
 # Uncomment to embed (one or more) challenges.
@@ -40,7 +40,7 @@ tasks:
 tasks:
   clone_samples:
     init: true
-    machine: docker-01
+    machine: ubuntu-01
     user: laborant
     run: |
       trap 'rm -rf ./*.zip' EXIT;
@@ -50,7 +50,7 @@ tasks:
 
   install_pack_cli:
     init: true
-    machine: docker-01
+    machine: ubuntu-01
     user: laborant
     run: |
       ORG=buildpacks
