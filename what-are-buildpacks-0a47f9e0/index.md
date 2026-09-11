@@ -22,7 +22,7 @@ updatedAt: 2026-08-02
 cover: __static__/cover.png
 
 playground:
-  name: ubuntu-24-04
+  name: docker
 
 
 # Uncomment to embed (one or more) challenges.
@@ -38,9 +38,22 @@ tasks:
   regular_task_1:
     run: ...
 tasks:
+  setup_daemon:
+    init: true
+    machine: docker-01
+    user: laborant
+    run: |
+      sudo curl -L https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-linux64 --output /usr/local/bin/jq
+
+      sudo jq -n \
+      'try input catch {} | .features["containerd-snapshotter"] = false' /etc/docker/daemon.json \
+      | sudo tee /etc/docker/daemon.json > /dev/null
+
+      sudo systemctl restart docker
+
   clone_samples:
     init: true
-    machine: ubuntu-01
+    machine: docker-01
     user: laborant
     run: |
       trap 'rm -rf ./*.zip' EXIT;
@@ -50,7 +63,7 @@ tasks:
 
   install_pack_cli:
     init: true
-    machine: ubuntu-01
+    machine: docker-01
     user: laborant
     run: |
       ORG=buildpacks
