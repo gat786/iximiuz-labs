@@ -2,10 +2,10 @@
 kind: tutorial
 
 title: |-
-  What are buildpacks, understanding the usecases, benefits and capabilities
+  What are buildpacks? Use-cases, benefits and a Hands on practical
 
 description: |-
-  This is a sample tutorial that demonstrates main capabilities of Cloud Native Buildpacks
+  This is tutorial demonstrates main capabilities of Cloud Native Buildpacks in a hands on fashion. We learn how to build images, use them and publish them to a registry using CNB (Cloud Native Buildpacks)
 
 categories:
 - linux
@@ -98,7 +98,7 @@ tasks:
 
 ## What is Buildpacks?
 
-Buildpacks is a CNCF (Cloud Native Computing Foundation) project which enables building container images from your application source that can run on Docker, Kubernetes or any cloud based container orchestration platform for that matter. It does so by automatically detecting things like which language your application was written in (i.e. by detecting files like `package.json`, `requirements.txt` or `go.mod`) and what dependencies does your app uses (by reading the content of those file) and automatically choosing a build-process that suits the detected workload information. It does not require a developer to provide a separate `Containerfile` that describes process of building a container.
+Buildpacks is a CNCF (Cloud Native Computing Foundation) project which enables building container images from your application source that can run on Docker, Kubernetes or any cloud based container orchestration platform. It does so by automatically detecting things like which language your application was written in (i.e. by detecting files like `package.json`, `requirements.txt` or `go.mod`) and what dependencies does your app uses (by reading the content of those file) and automatically choosing a build-process that suits the detected information. It does not require a developer to provide a separate `Containerfile` that describes process of building a container.
 
 ### Benefits of using Buildpacks
 
@@ -107,16 +107,16 @@ The main benefits of using Buildpacks are as follows
 1. **No Containerfiles to manage** - You don't need to maintain a separate
   Containerfile anywhere which describes how your application should be build.
   Buildpacks read the context i.e. your source code and automatically pick
-  up finer details of your application and create run time image accordingly. That also means that there is no need to maintain a common ground between application source code and dockerfiles since they can drift apart during development phases. Buildpacks automatically picks up the finer details by reading the context.
+  up finer details of your application and create run time image accordingly. That also means that there no Dockerfile to keep in sync, so source and image definition can't drift apart.
 
 2. **Safer build process** - A build process that happens using buildpacks can
   generally be considered as a safer process than typically docker build, because it does not involve choosing a base image and doing any operations on that base image to create layers. A buildpack build-process generally just involves downloading dependencies needed for application + compiling and creating a binary of your application if it is a compiled language source code and then attaching the final result to a run-time image, which the buildpack already has configured. The build process does not require root at any level.
 
 3. **Flexibility of changing base layers of runtime image** - Because of the
-  build process defined in the previous point.  You get flexibility of using `rebase` feature. It is a feature that allows on demand of swapping base layer of any pre-built runtime container image without running the entire build pipeline. This feature allows you to replace runtime container image's base operating system quickly for any reason which may be -
+  build process defined in the previous point.  You get flexibility of using `rebase` feature. It is a feature that allows on demand of swapping base layer of any pre-built runtime container image without running the entire build pipeline. This feature allows you to replace runtime container image's base operating system quickly for reasons such as:
 
+    * Updating to a newer OS version if one is available.
     * Patching images that have critical vulnerabilities in them.
-    * Updating with newer version of OS software when available if the OS layer is compatible enough.
 
 ### What is it not?
 
@@ -204,6 +204,12 @@ Test the built api endpoint by opening another terminal and running
 curl localhost:8080
 ```
 
+Since, this is a standard Docker Image it can be tagged and pushed as one. Let's do that.
+
+```sh
+docker tag golang-hello registry.iximiuz.com/golang-hello:latest
+```
+
 ::simple-task
 ---
 :tasks: tasks
@@ -215,6 +221,10 @@ please tag golang-hello docker image using docker cli so that it can be pushed.
 #completed
 golang-hello docker image was successfully tagged
 ::
+
+```sh
+docker push registry.iximiuz.com/golang-hello:latest
+```
 
 ::simple-task
 ---
