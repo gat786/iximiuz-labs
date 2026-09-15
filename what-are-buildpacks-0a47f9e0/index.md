@@ -2,7 +2,7 @@
 kind: tutorial
 
 title: |-
-  What are Buildpacks? Use cases, benefits, and a hands-on tutorial
+  What are Buildpacks? Use Cases, Benefits, and a Hands-On tutorial
 
 description: |-
   This tutorial demonstrates the main capabilities of Cloud Native Buildpacks in a hands-on fashion. We learn how to build images, use them and publish them to a registry using CNB (Cloud Native Buildpacks).
@@ -19,7 +19,7 @@ tagz:
 createdAt: 2026-08-02
 updatedAt: 2026-08-02
 
-cover: __static__/cover.png
+cover: __static__/cover-buildpacks-v1.png
 
 playground:
   name: docker
@@ -80,23 +80,65 @@ tasks:
 
   build_golang_image:
     machine: docker-01
+    needs:
+      - setup_daemon
+      - clone_samples
+      - install_pack_cli
     run: |
-      pack build golang-hello --builder heroku/builder:26
+      if ! docker images --format '{{.Repository}}' | grep -q '^golang-hello$'; then
+          return 1;
+      fi
+
   run_golang_image:
     machine: docker-01
+    needs:
+      - setup_daemon
+      - clone_samples
+      - install_pack_cli
+      - build_golang_image
     run: |
-      docker run -p 8080:8080 golang-hello
+      if docker ps --filter "ancestor=golang-hello" | grep -q golang-hello; then
+          echo "A container from the golang-hello image is currently running."
+          exit 0;
+      fi
+
+      exit 1;
+
   tag_golang_image:
     machine: docker-01
+    needs:
+      - setup_daemon
+      - clone_samples
+      - install_pack_cli
+      - build_golang_image
+      - run_golang_image
     run: |
-      docker tag golang-hello registry.iximiuz.com/golang-hello:latest
+      if ! docker image inspect registry.iximiuz.com/golang-hello:latest > /dev/null 2>&1; then
+          exit 1
+      fi
+
   push_golang_image:
     machine: docker-01
+    needs:
+      - setup_daemon
+      - clone_samples
+      - install_pack_cli
+      - build_golang_image
+      - tag_golang_image
     run: |
-      docker push registry.iximiuz.com/golang-hello
+      if ! docker manifest inspect registry.iximiuz.com/golang-hello:latest > /dev/null 2>&1; then
+          exit 1
+      fi
 ---
 
 ## What is Buildpacks?
+
+::image-box
+---
+:src: __static__/cover-buildpacks-v1.png
+:alt: 'A brief about how buildpacks function and what it does'
+---
+::
 
 Buildpacks is a CNCF (Cloud Native Computing Foundation) project which enables building container images from your application source that can run on Docker, Kubernetes or any cloud-based container orchestration platform. It does so by automatically detecting things like which language your application was written in (i.e. by detecting files like `package.json`, `requirements.txt` or `go.mod`) and what dependencies your app uses (by reading the contents of those files) and automatically choosing a build-process that suits the detected information. It does not require a developer to provide a separate `Containerfile` that describes the process of building a container.
 
@@ -251,4 +293,4 @@ If you look closely at the build logs, you will see (this is for the golang-hell
 * The `Detecting` and `Building` phases are the most important among the
   ones listed above, because this is where the builder actually detects what needs to be done and then executes the `Building` steps depending on that.
 * You will see that during the `Building` phase, two buildpacks took part.
-  First one is the official language buildpack, in this case `Heroku Go Buildpack` and `Procfile` buildpack. `Procfile` is a simple text file present in the application directory which contains text `web: golang-hello`. i.e. the runtime application is a webservice and it runs by executing the binary named `golang-hello`. You can read more about it [here](https://devcenter.heroku.com/articles/procfile).
+  First one is the official language buildpack, in this case `Heroku Go Buildpack` and `Procfile` buildpack. `Procfile` is a simple text file present in the application directory which contains text `web: golang-hello`. i.e. the runtime application is a webservice and it runs by executing the binary named `golang-hello`. You can read more about it [here](https://devcenter.heroku.com/articles/procfile). The Procfile buildpack is used to configure an `ENTRYPOINT` for your docker container. It can be used to specify a specific command that you want to be the entrypoint for your application.
