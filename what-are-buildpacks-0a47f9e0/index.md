@@ -2,7 +2,7 @@
 kind: tutorial
 
 title: |-
-  What are Buildpacks? Use Cases, Benefits, and a Hands-On tutorial
+  What are Buildpacks? Use Cases, Benefits, Hands-On experience with Guide to going through production.
 
 description: |-
   This tutorial demonstrates the main capabilities of Cloud Native Buildpacks in a hands-on fashion. We learn how to build images, use them and publish them to a registry using CNB (Cloud Native Buildpacks).
@@ -32,6 +32,12 @@ playground:
 
 # Uncomment to add (one or more) background tasks.
 tasks:
+  setup_trivy:
+    init: true
+    machine: docker-01
+    user: laborant
+    run: |
+      ark get trivy
   setup_daemon:
     init: true
     machine: docker-01
@@ -204,7 +210,7 @@ We will try to build container images for these fairly simple applications using
 
 Go to the `examples/golang-hello` directory and then run the following command
 
-```
+```sh
 pack build golang-hello --builder heroku/builder:26
 ```
 
@@ -224,7 +230,7 @@ In the above command - `golang-hello` is the docker image name that pack would c
 
 Once the build process completes, we can then run the image using
 
-```
+```sh
 docker run -p 8080:8080 golang-hello
 ```
 
@@ -294,3 +300,45 @@ If you look closely at the build logs, you will see (this is for the golang-hell
   ones listed above, because this is where the builder actually detects what needs to be done and then executes the `Building` steps depending on that.
 * You will see that during the `Building` phase, two buildpacks took part.
   First one is the official language buildpack, in this case `Heroku Go Buildpack` and `Procfile` buildpack. `Procfile` is a simple text file present in the application directory which contains text `web: golang-hello`. i.e. the runtime application is a webservice and it runs by executing the binary named `golang-hello`. You can read more about it [here](https://devcenter.heroku.com/articles/procfile). The Procfile buildpack is used to configure an `ENTRYPOINT` for your docker container. It can be used to specify a specific command that you want to be the entrypoint for your application.
+
+## Poking around in the build artifacts
+
+While Buildpacks do end up creating a Docker Image, its not the same thing as using a Dockerfile and building one. Buildpacks use builders (we provided one using the `--builder` flag in our small tutorial) to automate build process and these builders contain Buildpack definitions which are nothing but scripts that execute a certain part of build lifecycle. So a container image is created by running scripts i.e. `DETECTION`, `BUILD` etc which in turn create docker image layers which are then bolted on top of a default run-image that a builder is already configured with.
+
+We can see that by investigating the image that we just generated, lets do that.
+
+```sh
+docker inspect registry.iximiuz.com/golang-hello:latest | grep "io.buildpacks.base.distro.name" -A 2
+```
+
+You will see that the base image is a standard Ubuntu LTS release versioned 26.04. It is by default the base runner image for `heroku/builder:26` that we chose. It is a good base image choice when you consider that the same builder can build images for `7` [different languages](https://github.com/heroku/buildpacks#heroku-cloud-native-buildpacks) and a run-image specified on the builder should support all the different artifacts the build process creates. But it also comes with its costs. Lets put the image under scanner by putting it through [Trivy](https://trivy.dev).
+
+
+::remark-box
+---
+kind: info
+---
+
+Trivy is a security tool that can scan container image artifacts and report the number of vulnerabilities that it sees within the image.
+::
+
+
+```sh
+trivy image --table-mode summary \
+  registry.iximiuz.com/golang-hello:latest
+```
+
+You will see a report which says that we currently have `> 350` vulnerabilities found. More than 90% of which are from the base image that we don't actually need.
+
+It is definitely not a safe choice for when you are going to production and want to keep vulnerabilities to a minimum. It unnecessarily adds vulnerable elements from the entire ubuntu-stack to an artifact which needs to execute a golang static binary which can run by itself. Security teams have a field day when something like this shows up. The `pack` CLI and thereby `CNB` have a feature known as `rebase`. It allows a user to swap the base run image of any container created using `CNB` to a compatible prebuilt or custom-built image.
+
+### Rebasing an image built using CNBs
+
+```sh
+cat > Dockerfile.run <<EOF
+FROM alpine:latest
+
+RUN apk add bash
+RUN adduser -D -u 1000 heroku -s /bin/bash
+EOF
+```
