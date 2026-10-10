@@ -135,6 +135,24 @@ tasks:
       if ! docker manifest inspect registry.iximiuz.com/golang-hello:latest > /dev/null 2>&1; then
           exit 1
       fi
+
+  build_wolfi_run_image:
+    machine: docker-01
+    needs:
+      - build_golang_image
+    run: |
+      if ! docker image inspect golang-hello-run:wolfi > /dev/null 2>&1; then
+          exit 1
+      fi
+
+  rebase_golang_image:
+    machine: docker-01
+    needs:
+      - build_wolfi_run_image
+    run: |
+      if ! docker run --rm --entrypoint cat golang-hello /etc/os-release 2>/dev/null | grep -q '^ID=wolfi'; then
+          exit 1
+      fi
 ---
 
 ## What is Buildpacks?
@@ -330,15 +348,155 @@ trivy image --table-mode summary \
 
 You will see a report which says that we currently have `> 350` vulnerabilities found. More than 90% of which are from the base image that we don't actually need.
 
-It is definitely not a safe choice for when you are going to production and want to keep vulnerabilities to a minimum. It unnecessarily adds vulnerable elements from the entire ubuntu-stack to an artifact which needs to execute a golang static binary which can run by itself. Security teams have a field day when something like this shows up. The `pack` CLI and thereby `CNB` have a feature known as `rebase`. It allows a user to swap the base run image of any container created using `CNB` to a compatible prebuilt or custom-built image.
+It is definitely not a safe choice for when you are going to production and want to keep vulnerabilities to a minimum. It unnecessarily adds vulnerable elements from the entire ubuntu-stack to an artifact that only needs to execute a single golang binary. Security teams have a field day when something like this shows up. The `pack` CLI and thereby `CNB` have a feature known as `rebase`. It allows a user to swap the base run image of any container created using `CNB` to a compatible prebuilt or custom-built image.
 
-### Rebasing an image built using CNBs
+### Rebasing onto a lean Wolfi run image
+
+Our image is really two things stacked together: the **run image** layers (Ubuntu, provided by the builder) and the **app layers** (our compiled Go binary plus some launch metadata). `pack rebase` swaps the first part and leaves the second part untouched. No rebuild, no recompilation.
+
+We'll swap Ubuntu for [Wolfi](https://github.com/wolfi-dev), a minimal, glibc-based Linux distribution designed for containers.
+
+Before swapping anything, save a reference to the original image so we can compare later:
 
 ```sh
-cat > Dockerfile.run <<EOF
-FROM alpine:latest
-
-RUN apk add bash
-RUN adduser -D -u 1000 heroku -s /bin/bash
-EOF
+docker tag golang-hello golang-hello:ubuntu
 ```
+
+#### What does the app actually need at runtime?
+
+A replacement run image only has to provide what the app layers rely on:
+
+**1. The same user.** Buildpacks never run your app as root:
+
+```sh
+docker run --rm --entrypoint id golang-hello
+```
+
+The app runs as `heroku` with UID/GID `1000`. The image config refers to this user by name, and rebase doesn't change it, so the new run image needs a `heroku` user with the same UID/GID.
+
+**2. `bash`.** The Procfile process `web: golang-hello` is started as `bash -c golang-hello`.
+
+**3. glibc.** Let's check which libraries the Go binary links against:
+
+```sh
+docker run --rm --entrypoint launcher golang-hello \
+  bash -c 'ldd "$(command -v golang-hello)"'
+```
+
+The binary depends on `libc.so.6`, i.e. glibc. That's why we use Wolfi instead of Alpine, which ships `musl` and can't run this binary.
+
+#### Building the Wolfi run image
+
+Capture the UID/GID from the original image so that the new run image matches it exactly:
+
+```sh
+CNB_USER_ID=$(docker run --rm --entrypoint id golang-hello -u)
+CNB_GROUP_ID=$(docker run --rm --entrypoint id golang-hello -g)
+```
+
+Now write a minimal run image definition and build it:
+
+```sh
+mkdir -p ~/wolfi-run && cd ~/wolfi-run
+
+cat > Dockerfile.run <<'EOF'
+FROM cgr.dev/chainguard/wolfi-base:latest
+
+ARG CNB_USER_ID
+ARG CNB_GROUP_ID
+
+RUN apk add --no-cache bash \
+ && addgroup -g ${CNB_GROUP_ID} heroku \
+ && adduser -D -u ${CNB_USER_ID} -G heroku -s /bin/bash heroku
+
+ENV CNB_USER_ID=${CNB_USER_ID} \
+    CNB_GROUP_ID=${CNB_GROUP_ID}
+USER ${CNB_USER_ID}:${CNB_GROUP_ID}
+
+LABEL io.buildpacks.base.distro.name="wolfi"
+EOF
+
+docker build -f Dockerfile.run \
+  --build-arg CNB_USER_ID=${CNB_USER_ID} \
+  --build-arg CNB_GROUP_ID=${CNB_GROUP_ID} \
+  -t golang-hello-run:wolfi .
+```
+
+::simple-task
+---
+:tasks: tasks
+:name: build_wolfi_run_image
+---
+#active
+please build the `golang-hello-run:wolfi` run image.
+
+#completed
+`golang-hello-run:wolfi` run image was built.
+::
+
+#### Rebasing
+
+Swap Ubuntu for Wolfi underneath our app:
+
+```sh
+pack rebase golang-hello \
+  --run-image golang-hello-run:wolfi \
+  --pull-policy never \
+  --force
+```
+
+* `--pull-policy never` uses the run image from the local Docker daemon instead of a registry.
+* `--force` is needed because `pack` refuses to rebase onto a different distro (`ubuntu` → `wolfi`) by default. We've checked that our app only needs glibc, `bash` and a `heroku` user, so it's safe here.
+
+The command finishes in a second or two because nothing is being built. `pack` only rewrites the image manifest so that the app layers sit on top of the new base layers.
+
+::simple-task
+---
+:tasks: tasks
+:name: rebase_golang_image
+---
+#active
+please rebase the golang-hello image onto `golang-hello-run:wolfi`.
+
+#completed
+golang-hello image was rebased onto Wolfi.
+::
+
+#### Comparing the results
+
+```sh
+docker images golang-hello
+```
+
+```
+IMAGE                 ID             DISK USAGE   CONTENT SIZE   EXTRA
+golang-hello:latest   9ef0040fee5e       34.8MB             0B
+golang-hello:ubuntu   c876d7cab8b6        564MB             0B
+```
+
+From 564MB down to about 35MB, with exactly the same app layers. Now scan both images:
+
+```sh
+trivy image --table-mode summary golang-hello:ubuntu
+trivy image --table-mode summary golang-hello:latest
+```
+
+The OS package findings drop from over 300 (Ubuntu) to zero (Wolfi). The remaining findings are in the CNB `launcher` binary, which is part of the app layers, so a new base image can't fix them.
+
+Finally, make sure that the app still works:
+
+```sh
+docker run -p 8080:8080 golang-hello
+```
+
+```sh
+curl localhost:8080
+```
+
+#### When does this work?
+
+Rebase works here because our app barely depends on the base image. Keep in mind:
+
+* **The new base must be compatible.** It needs the same C library (glibc here) at the same or a newer version. Alpine would break this binary. Rebasing within the same distro, e.g. to pick up security patches, is the everyday use case and doesn't need `--force`.
+* **`--force` turns off the safety net.** Always run the rebased image before you ship it.
+* **You own the run image.** You are responsible for keeping it patched.

@@ -11,7 +11,7 @@ app code.
 | Directory | Language | Framework | Details |
 |---|---|---|---|
 | [`nodejs-hello/`](nodejs-hello/) | Node.js 22 | Express 4 | [README](nodejs-hello/README.md) |
-| [`golang-hello/`](golang-hello/) | Go 1.23 | stdlib `net/http` | [README](golang-hello/README.md) |
+| [`golang-hello/`](golang-hello/) | Go 1.27 | stdlib `net/http` | [README](golang-hello/README.md) |
 | [`python-hello/`](python-hello/) | Python 3.13 | FastAPI + Uvicorn | [README](python-hello/README.md) |
 
 ## Prerequisites

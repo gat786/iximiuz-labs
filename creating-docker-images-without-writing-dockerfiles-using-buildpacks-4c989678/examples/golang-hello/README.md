@@ -9,7 +9,7 @@ no Dockerfile required.
 | | |
 |---|---|
 | Language   | Go |
-| Version    | 1.23 (see `go.mod`, any modern 1.2x toolchain works) |
+| Version    | 1.27 (see `go.mod`) |
 | Framework  | None — standard library `net/http` only |
 | Entrypoint | `main.go`, compiled to a binary named `golang-hello` |
 | Port       | Reads `PORT` env var, defaults to `8080` |
