@@ -58,7 +58,7 @@ tasks:
     run: |
       trap 'rm -rf ./*.zip' EXIT;
 
-      wget https://github.com/gat786/iximiuz-labs/releases/download/release-20/examples.zip
+      wget https://github.com/gat786/iximiuz-labs/releases/download/release-21/examples.zip
       unzip examples.zip
 
   install_pack_cli:
@@ -387,14 +387,7 @@ The binary depends on `libc.so.6`, i.e. glibc. That's why we use Wolfi instead o
 
 #### Building the Wolfi run image
 
-Capture the UID/GID from the original image so that the new run image matches it exactly:
-
-```sh
-CNB_USER_ID=$(docker run --rm --entrypoint id golang-hello -u)
-CNB_GROUP_ID=$(docker run --rm --entrypoint id golang-hello -g)
-```
-
-Now write a minimal run image definition and build it:
+Write a minimal run image definition and build it. The UID/GID `1000` match the `heroku` user we saw in the original image:
 
 ```sh
 mkdir -p ~/wolfi-run && cd ~/wolfi-run
@@ -402,24 +395,19 @@ mkdir -p ~/wolfi-run && cd ~/wolfi-run
 cat > Dockerfile.run <<'EOF'
 FROM cgr.dev/chainguard/wolfi-base:latest
 
-ARG CNB_USER_ID
-ARG CNB_GROUP_ID
+ENV CNB_USER_ID=1000 \
+    CNB_GROUP_ID=1000
 
 RUN apk add --no-cache bash \
  && addgroup -g ${CNB_GROUP_ID} heroku \
  && adduser -D -u ${CNB_USER_ID} -G heroku -s /bin/bash heroku
 
-ENV CNB_USER_ID=${CNB_USER_ID} \
-    CNB_GROUP_ID=${CNB_GROUP_ID}
 USER ${CNB_USER_ID}:${CNB_GROUP_ID}
 
 LABEL io.buildpacks.base.distro.name="wolfi"
 EOF
 
-docker build -f Dockerfile.run \
-  --build-arg CNB_USER_ID=${CNB_USER_ID} \
-  --build-arg CNB_GROUP_ID=${CNB_GROUP_ID} \
-  -t golang-hello-run:wolfi .
+docker build -f Dockerfile.run -t golang-hello-run:wolfi .
 ```
 
 ::simple-task
